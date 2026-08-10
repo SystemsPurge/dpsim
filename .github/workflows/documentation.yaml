@@ -111,14 +111,15 @@ jobs:
         cp -r reference/. public
         cp -r docs/hugo/public/. public
 
-    - name: Deploy page
-      uses: peaceiris/actions-gh-pages@v4.1.0
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./public
-        publish_branch: gh-pages
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
+    #4 DRY RUN
+    #- name: Deploy page
+    #  uses: peaceiris/actions-gh-pages@v4.1.0
+    #  with:
+    #    github_token: ${{ secrets.GITHUB_TOKEN }}
+    #    publish_dir: ./public
+    #    publish_branch: gh-pages
+    #    user_name: 'github-actions[bot]'
+    #    user_email: 'github-actions[bot]@users.noreply.github.com'
 
   # Mirrors the same content to https://dpsim.fein-aachen.org/ which is served from its own root.
   deploy-fein:
@@ -165,13 +166,14 @@ jobs:
         cp -r reference/. public
         cp -r docs/hugo/public/. public
 
-    - name: Deploy dpsim-simulator / FEIN
-      uses: peaceiris/actions-gh-pages@v4.1.0
-      with:
-        deploy_key: ${{ secrets.HUGO_ACTIONS_DEPLOY_KEY }}
-        external_repository: dpsim-simulator/dpsim-simulator.github.io
-        publish_dir: ./public
-        user_name: m-mirz
-        user_email: markus.mirz@rwth-aachen.de
-        publish_branch: master
-        cname: dpsim.fein-aachen.org
+    #4 DRY RUN
+    #- name: Deploy dpsim-simulator / FEIN
+    #  uses: peaceiris/actions-gh-pages@v4.1.0
+    #  with:
+    #    deploy_key: ${{ secrets.HUGO_ACTIONS_DEPLOY_KEY }}
+    #    external_repository: dpsim-simulator/dpsim-simulator.github.io
+    #    publish_dir: ./public
+    #    user_name: m-mirz
+    #    user_email: markus.mirz@rwth-aachen.de
+    #    publish_branch: master
+    #    cname: dpsim.fein-aachen.org

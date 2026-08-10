@@ -90,11 +90,12 @@ jobs:
           build/**/*.gc*
           ${{ github.workspace }}/src/**/*.cpp
 
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v6
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: sogno-platform/dpsim
+    #4 DRY RUN
+    #- name: Upload coverage report
+    #  uses: codecov/codecov-action@v6
+    #  with:
+    #    token: ${{ secrets.CODECOV_TOKEN }}
+    #    slug: sogno-platform/dpsim
 
   compare-notebook-results:
     name: Compare notebook results
