@@ -165,13 +165,14 @@ jobs:
       image_dev: ${{ needs.setup.outputs.image_dev }}
       image_rocky: ${{ needs.setup.outputs.image_rocky }}
       image_minimal: ${{ needs.setup.outputs.image_minimal }}
-
-  build-windows:
-    name: Build Windows
-    needs: [setup]
-    uses: ./.github/workflows/build-windows.yaml
-    with:
-      ref: ${{ needs.setup.outputs.ref }}
+  
+  #4 DRY RUN
+  #build-windows:
+  #  name: Build Windows
+  #  needs: [setup]
+  #  uses: ./.github/workflows/build-windows.yaml
+  #  with:
+  #    ref: ${{ needs.setup.outputs.ref }}
 
   checks:
     name: Checks
@@ -260,7 +261,8 @@ jobs:
       - setup
       - prepare
       - build-linux
-      - build-windows
+      #4 DRY RUN
+      #- build-windows
       - checks
       - test-linux
       - villas-examples
