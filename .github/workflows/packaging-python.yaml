@@ -21,7 +21,7 @@ permissions:
 jobs:
   build-sdist:
     name: Source distribution
-    runs-on: ubuntu-24.04
+    runs-on: systemspurge-dpsim-runner
     container: ${{ inputs.image }}
     steps:
     - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   build-wheels:
     name: Python wheel
-    runs-on: ${{ matrix.os }}
+    runs-on: systemspurge-dpsim-runner
     strategy:
       fail-fast: false
       matrix:

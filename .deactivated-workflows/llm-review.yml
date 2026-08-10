@@ -41,7 +41,7 @@ jobs:
     if: >-
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
-    runs-on: ${{ vars.LLM_REVIEW_RUNNER || 'ubuntu-latest' }}
+    runs-on: systemspurge-dpsim-runner
     steps:
       - name: Checkout base repository (trusted code only)
         uses: actions/checkout@v4

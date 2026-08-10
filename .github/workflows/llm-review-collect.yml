@@ -21,7 +21,7 @@ permissions: {}
 
 jobs:
   collect:
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     steps:
       - name: Record PR metadata
         env:

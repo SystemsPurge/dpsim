@@ -26,7 +26,7 @@ on:
 jobs:
   generate-reference:
     name: Reference
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     container: ${{ inputs.image }}
     steps:
     - name: Checkout
@@ -64,7 +64,7 @@ jobs:
   # Deploys to https://sogno.energy/dpsim/ through the repository gh-pages branch.
   deploy-sogno:
     name: Deploy to sogno.energy
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     needs: [generate-reference]
 
     permissions:
@@ -124,7 +124,7 @@ jobs:
   # Mirrors the same content to https://dpsim.fein-aachen.org/ which is served from its own root.
   deploy-fein:
     name: Deploy to dpsim.fein-aachen.org
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     needs: [generate-reference]
 
     steps:

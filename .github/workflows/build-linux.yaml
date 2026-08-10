@@ -29,7 +29,7 @@ permissions:
 jobs:
   build:
     name: ${{ matrix.title }}
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     container: ${{ matrix.image }}
     strategy:
       fail-fast: false

@@ -39,7 +39,7 @@ jobs:
   base:
     name: Build ${{ matrix.image }} image
     if: inputs.base_images != '[]'
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +79,7 @@ jobs:
     name: Build ${{ matrix.image }} image
     needs: [base]
     if: ${{ always() && needs.base.result != 'failure' && inputs.derived_images != '[]' }}
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     strategy:
       fail-fast: false
       matrix:

@@ -20,7 +20,7 @@ concurrency:
 jobs:
   scan:
     name: Prepare and run Sonar Scan
-    runs-on: ubuntu-latest
+    runs-on: systemspurge-dpsim-runner
     container: sogno/dpsim:dev
     if: github.event.workflow_run.conclusion == 'success'
     permissions:
