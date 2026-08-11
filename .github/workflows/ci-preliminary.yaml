@@ -11,26 +11,32 @@ on:
       #specific docker image change => rebuild_images=false
       #pr => push=false
       #merge => push=true
+        #nightly release=>push_latest=false
+        #stable release=>push_latest=true
       push:
-        description: Used to differentiate the different contexts in which this workflow runs
+        description: |
+          Controls publishing:
+          - false: do not push
+          - true: push versioned SHA tag
+          - latest: push SHA tag and latest/legacy tags
         required: true
-        type: boolean
+        type: string
       
       rebuild_images:
-        description: Rebuild all development container images from their Dockerfiles
-        required: true
-        type: boolean
+        description: |
+          Controls image rebuild behavior:
+          - auto: Automatically rebuild all if non-Docker code changed, else rebuild specific Docker changes
+          - true: Force rebuild of all images
+          - false: Only build specifically changed Dockerfiles
+        required: false
+        type: string
+        default: 'auto'
 
       registries:
         description: JSON array of container registries to push to
         required: false
         type: string
         default: '["docker.io"]'
-
-      push_latest:
-        description: Also push the :latest and legacy dpsim:<image_repo> tags
-        required: true
-        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -83,6 +89,8 @@ jobs:
           INPUT_PUSH: ${{ inputs.push }}
         run: |
           set -euo pipefail
+          
+          # ---- validate registries as array of string ----
 
           echo "${INPUT_REGISTRIES}" |
             jq -e '
@@ -91,9 +99,29 @@ jobs:
               and all(.[]; type == "string")
             ' >/dev/null
 
+          # ---- validate/convert push as one of true/false/latest ----
+
+          case "${INPUT_PUSH}" in
+            false)
+              push=false
+              push_latest=false
+              ;;
+            true)
+              push=true
+              push_latest=false
+              ;;
+            latest)
+              push=true
+              push_latest=true
+              ;;
+            *)
+              echo "Invalid push value: ${INPUT_PUSH}. Expected false, true, or latest." >&2
+              exit 1
+              ;;
+          esac
           echo "registries=${INPUT_REGISTRIES}" >> "${GITHUB_OUTPUT}"
-          echo "push_latest=${INPUT_PUSH_LATEST}" >> "${GITHUB_OUTPUT}"
-          echo "push=${INPUT_PUSH}" >> "${GITHUB_OUTPUT}"
+          echo "push=${push}" >> "${GITHUB_OUTPUT}"
+          echo "push_latest=${push_latest}" >> "${GITHUB_OUTPUT}"
 
       - name: Detect Docker image changes
         id: paths
@@ -103,20 +131,35 @@ jobs:
           filters: |
             docker:
               - 'packaging/Docker/Dockerfile.*'
+            code_changed:
+              - '**'
+              - '!packaging/Docker/**'
+              - '!.github/**'
+              - '!**.md'
+              - '!.gitignore'
+              - '!LICENSE*'
 
       - name: Resolve images
         id: images
         shell: bash
         env:
           DOCKER_FILES: ${{ steps.paths.outputs.docker_files }}
+          CODE_CHANGED: ${{ steps.paths.outputs.code_changed }}
           REBUILD_IMAGES: ${{ inputs.rebuild_images }}
           DEV_DEPENDENTS: ${{ env.DEV_DEPENDENTS }}
         run: |
           set -euo pipefail
 
-          #----if rebuild images, pretty straightforward----
+          # ---- determine if a full rebuild is required ----
+          
+          if [[ "${REBUILD_IMAGES}" == "true" ]] || \
+            ([[ "${REBUILD_IMAGES}" == "auto" ]] && [[ "${CODE_CHANGED}" == "true" ]]); then
+            rebuild_all=true
+          else
+            rebuild_all=false
+          fi
 
-          if [[ "${REBUILD_IMAGES}" == "true" ]]; then
+          if [[ "${rebuild_all}" == "true" ]]; then
           image_repos="$(
             find packaging/Docker \
               -maxdepth 1 \
@@ -193,7 +236,7 @@ jobs:
     needs:
       - setup
       - build-dev
-    if: |
+    if: | #this is pretty much if build-dev is skipped, but didnt fail
       always() &&
       needs.setup.outputs.image_repos != '[]' &&
       !contains(needs.*.result, 'failure') &&
@@ -218,7 +261,7 @@ jobs:
             BASE_IMAGE=${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ env.IMAGE_SHA }}
           tags: |
             ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/${{ matrix.image_repo }}:${{ env.IMAGE_SHA }}
-          push: true
+          push: true #temporarely push into LOCAL registry
   
   push-dev:
     name: Promote and push dev image
@@ -321,7 +364,7 @@ jobs:
           # ----handle latest & legacy transition tags----
 
           if [[ "${PUSH_LATEST}" == "true" ]]; then
-          
+
             # ----push :latest tag (e.g., sogno/dpsim-rpm:latest)----
 
             docker tag "${local_image}" "${base_image}:latest"
