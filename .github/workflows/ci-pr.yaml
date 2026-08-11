@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
+#
+# SPDX-License-Identifier: MPL-2.0
+
+name: PR CI
+
+on:
+  workflow_dispatch:
+  # actual trigger should be:
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build & Test
+    uses: ./.github/workflows/build-ci.yml
+    with:
+      push: 'false'

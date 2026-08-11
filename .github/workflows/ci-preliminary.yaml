@@ -7,12 +7,11 @@ name: Build CI
 on:
   workflow_call:
     inputs:
-      #general code change => rebuild_images=true
-      #specific docker image change => rebuild_images=false
+      #rebuild_images can actually just not be touched here
       #pr => push=false
       #merge => push=true
-        #nightly release=>push_latest=false
-        #stable release=>push_latest=true
+        #nightly release=>push=latest
+        #stable release=>push=true
       push:
         description: |
           Controls publishing:
@@ -151,7 +150,7 @@ jobs:
           set -euo pipefail
 
           # ---- determine if a full rebuild is required ----
-          
+
           if [[ "${REBUILD_IMAGES}" == "true" ]] || \
             ([[ "${REBUILD_IMAGES}" == "auto" ]] && [[ "${CODE_CHANGED}" == "true" ]]); then
             rebuild_all=true
