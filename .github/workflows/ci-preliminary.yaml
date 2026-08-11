@@ -84,7 +84,7 @@ jobs:
         shell: bash
         env:
           INPUT_REGISTRIES: ${{ inputs.registries }}
-          INPUT_PUSH_LATEST: ${{ inputs.push_latest }}
+          INPUT_REBUILD_IMAGES: ${{ inputs.rebuild_images }}
           INPUT_PUSH: ${{ inputs.push }}
         run: |
           set -euo pipefail
@@ -118,6 +118,19 @@ jobs:
               exit 1
               ;;
           esac
+
+          # ---- validate rebuild_images as one of true/false/auto ----
+
+          case "${INPUT_REBUILD_IMAGES}" in
+            true|false|auto)
+              rebuild_images="${INPUT_REBUILD_IMAGES}"
+              ;;
+            *)
+              echo "Invalid rebuild_images value: ${INPUT_REBUILD_IMAGES}. Expected true, false, or auto." >&2
+              exit 1
+              ;;
+          esac
+
           echo "registries=${INPUT_REGISTRIES}" >> "${GITHUB_OUTPUT}"
           echo "push=${push}" >> "${GITHUB_OUTPUT}"
           echo "push_latest=${push_latest}" >> "${GITHUB_OUTPUT}"
