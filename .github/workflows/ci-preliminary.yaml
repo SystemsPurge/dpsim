@@ -113,7 +113,9 @@ jobs:
           DEV_DEPENDENTS: ${{ env.DEV_DEPENDENTS }}
         run: |
           set -euo pipefail
-          #If rebuild images, pretty straightforward
+
+          #----if rebuild images, pretty straightforward----
+
           if [[ "${REBUILD_IMAGES}" == "true" ]]; then
           image_repos="$(
             find packaging/Docker \
@@ -129,7 +131,9 @@ jobs:
               | map(if . == "dpsim" then . else "dpsim-" + . end)
             '
           )"
-          #else detect what changed
+
+          #----else detect what changed----
+
           else
             image_repos="$(
               jq -c '
@@ -140,11 +144,14 @@ jobs:
               ' <<< "${DOCKER_FILES}"
             )"
           fi
-          #see if dev needs rebuilding
+
+          #----see if dev needs rebuilding----
+
           has_dev="$(jq -r 'contains(["dpsim-dev"])' <<< "${image_repos}")"
 
-          #add dependents if necessary ( consider inverted dependence here )
-          #removing dev shouldnt be an issue, since has_dev determines whether dev build triggers
+          #----add dependents if necessary ( consider inverted dependence here )----
+          #----removing dev shouldnt be an issue, since has_dev determines whether dev build triggers----
+
           image_repos="$(
             jq -c --argjson dependents "${DEV_DEPENDENTS}" '
               if contains(["dpsim-dev"]) then
@@ -306,17 +313,22 @@ jobs:
 
           docker pull "${local_image}"
 
-          # always push SHA tag
+          # ----always push SHA tag----
+
           docker tag "${local_image}" "${sha_tagged}"
           docker push "${sha_tagged}"
 
-          # handle latest & legacy transition tags
+          # ----handle latest & legacy transition tags----
+
           if [[ "${PUSH_LATEST}" == "true" ]]; then
-            # push :latest tag (e.g., sogno/dpsim-rpm:latest)
+          
+            # ----push :latest tag (e.g., sogno/dpsim-rpm:latest)----
+
             docker tag "${local_image}" "${base_image}:latest"
             docker push "${base_image}:latest"
 
-            # push legacy transition tag for all non-dpsim repos (e.g., sogno/dpsim:rpm)
+            # ----push legacy transition tag for all non-dpsim repos (e.g., sogno/dpsim:rpm)----
+
             if [[ "${IMAGE_REPO}" != "dpsim" ]]; then
               transition_tag="${REGISTRY}/${ORGANIZATION}/dpsim:${IMAGE_REPO#*-}"
               docker tag "${local_image}" "${transition_tag}"
