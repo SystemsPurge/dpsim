@@ -15,6 +15,9 @@ jobs:
   build-check:
     name: Validate Container Build
     uses: ./.github/workflows/ci-build.yaml
+    permissions:
+      contents: read
+      packages: read
     with:
       push: false
     secrets: inherit

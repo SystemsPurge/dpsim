@@ -20,6 +20,9 @@ jobs:
   push-version:
     name: Build & Push Version
     uses: ./.github/workflows/ci-build.yaml
+    permissions:
+      contents: read
+      packages: write
     with:
       push: true
       rebuild_images: true

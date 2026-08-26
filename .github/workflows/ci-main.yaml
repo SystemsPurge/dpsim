@@ -14,6 +14,9 @@ jobs:
   push-sha:
     name: Build & Push SHA
     uses: ./.github/workflows/ci-build.yaml
+    permissions:
+      contents: read
+      packages: write
     with:
       push: true
     secrets: inherit

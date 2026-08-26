@@ -42,10 +42,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   ORGANIZATION: soullessblob
   LOCAL_REGISTRY: internal-registry.arc-systems.svc.cluster.local:5000
