@@ -213,7 +213,7 @@ jobs:
       - setup
       - build-dev
     if: |
-      ${{ !cancelled() }} &&
+      !cancelled() &&
       needs.setup.outputs.image_repos != '[]' &&
       !contains(needs.*.result, 'failure') &&
       !contains(needs.*.result, 'cancelled')
@@ -246,7 +246,7 @@ jobs:
       - build-dev
       - build
     if: |
-      ${{ !cancelled() }} &&
+      !cancelled() &&
       needs.setup.outputs.has_dev == 'true' &&
       needs.setup.outputs.push == 'true' &&
       !contains(needs.*.result, 'failure') &&
@@ -334,7 +334,7 @@ jobs:
       - setup
       - build
     if: |
-      ${{ !cancelled() }} &&
+      !cancelled() &&
       needs.setup.outputs.image_repos != '[]' &&
       needs.setup.outputs.push == 'true' &&
       !contains(needs.*.result, 'failure') &&
