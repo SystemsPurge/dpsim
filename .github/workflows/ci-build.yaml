@@ -175,7 +175,6 @@ jobs:
 
           has_dev="$(jq -r 'contains(["dpsim-dev"])' <<< "${image_repos}")"
 
-          # Filter dependents and construct object array containing repo and platform keys
           image_repos="$(
             jq -c --argjson dependents "${DEV_DEPENDENTS}" '
               (if contains(["dpsim-dev"]) then
