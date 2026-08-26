@@ -205,7 +205,7 @@ jobs:
           context: .
           file: packaging/Docker/Dockerfile.dev
           tags: ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ env.IMAGE_SHA }}
-          push: ${{ needs.setup.outputs.push == 'true' }}
+          push: true
 
   build:
     name: Build ${{ matrix.target.repo }}
