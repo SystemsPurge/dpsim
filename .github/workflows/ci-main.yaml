@@ -2,19 +2,18 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-name: Validate PR
+name: Push Main
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   types: [opened, synchronize, reopened]
+  # push:
   #   branches:
   #     - main
 
 jobs:
-  build-check:
-    name: Validate Container Build
+  push-sha:
+    name: Build & Push SHA
     uses: ./.github/workflows/ci-build.yaml
     with:
-      push: false
+      push: true
     secrets: inherit
