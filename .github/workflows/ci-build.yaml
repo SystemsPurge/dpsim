@@ -175,13 +175,18 @@ jobs:
 
           has_dev="$(jq -r 'contains(["dpsim-dev"])' <<< "${image_repos}")"
 
+          # Filter dependents and construct object array containing repo and platform keys
           image_repos="$(
             jq -c --argjson dependents "${DEV_DEPENDENTS}" '
-              if contains(["dpsim-dev"]) then
+              (if contains(["dpsim-dev"]) then
                 (. + $dependents | unique) - ["dpsim-dev"]
               else
                 .
-              end
+              end)
+              | map({
+                  repo: .,
+                  platform: (if . == "dpsim" then "dpsim" else sub("^dpsim-"; "") end)
+                })
             ' <<< "${image_repos}"
           )"
 
@@ -212,7 +217,7 @@ jobs:
           push: true
 
   build:
-    name: Build ${{ matrix.image_repo }}
+    name: Build ${{ matrix.target.repo }}
     needs:
       - setup
       - build-dev
@@ -225,7 +230,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image_repo: ${{ fromJSON(needs.setup.outputs.image_repos) }}
+        target: ${{ fromJSON(needs.setup.outputs.image_repos) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -236,11 +241,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: packaging/Docker/Dockerfile.${{ replace(matrix.image_repo, 'dpsim-', '') }}
+          file: packaging/Docker/Dockerfile.${{ matrix.target.platform }}
           build-args: |
             BASE_IMAGE=${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ env.IMAGE_SHA }}
           tags: |
-            ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/${{ matrix.image_repo }}:${{ env.IMAGE_SHA }}
+            ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}:${{ env.IMAGE_SHA }}
           push: true
 
   push-dev:
@@ -333,7 +338,7 @@ jobs:
           done <<< "${TAGS}"
 
   push:
-    name: Promote and push ${{ matrix.image_repo }}
+    name: Promote and push ${{ matrix.target.repo }}
     needs:
       - setup
       - build
@@ -347,7 +352,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image_repo: ${{ fromJSON(needs.setup.outputs.image_repos) }}
+        target: ${{ fromJSON(needs.setup.outputs.image_repos) }}
     steps:
       - name: Log in to Docker Hub
         if: contains(needs.setup.outputs.registries, 'docker.io')
@@ -370,7 +375,7 @@ jobs:
         if: contains(needs.setup.outputs.registries, 'docker.io')
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ env.ORGANIZATION }}/${{ matrix.image_repo }}
+          images: docker.io/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}
           tags: |
             type=raw,value=${{ env.IMAGE_SHA }}
             type=raw,value=${{ needs.setup.outputs.version }},enable=${{ needs.setup.outputs.version != '' }}
@@ -378,21 +383,19 @@ jobs:
 
       - name: Resolve legacy transition metadata (docker.io)
         id: meta-dockerhub-legacy
-        if: contains(needs.setup.outputs.registries, 'docker.io') && needs.setup.outputs.version != '' && matrix.image_repo != 'dpsim'
+        if: contains(needs.setup.outputs.registries, 'docker.io') && needs.setup.outputs.version != '' && matrix.target.repo != 'dpsim'
         uses: docker/metadata-action@v5
-        env:
-          PLATFORM_TAG: ${{ replace(matrix.image_repo, 'dpsim-', '') }}
         with:
           images: docker.io/${{ env.ORGANIZATION }}/dpsim
           tags: |
-            type=raw,value=${{ env.PLATFORM_TAG }}
+            type=raw,value=${{ matrix.target.platform }}
 
       - name: Resolve metadata (ghcr.io)
         id: meta-ghcr
         if: contains(needs.setup.outputs.registries, 'ghcr.io')
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ env.ORGANIZATION }}/${{ matrix.image_repo }}
+          images: ghcr.io/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}
           tags: |
             type=raw,value=${{ env.IMAGE_SHA }}
             type=raw,value=${{ needs.setup.outputs.version }},enable=${{ needs.setup.outputs.version != '' }}
@@ -400,19 +403,17 @@ jobs:
 
       - name: Resolve legacy transition metadata (ghcr.io)
         id: meta-ghcr-legacy
-        if: contains(needs.setup.outputs.registries, 'ghcr.io') && needs.setup.outputs.version != '' && matrix.image_repo != 'dpsim'
+        if: contains(needs.setup.outputs.registries, 'ghcr.io') && needs.setup.outputs.version != '' && matrix.target.repo != 'dpsim'
         uses: docker/metadata-action@v5
-        env:
-          PLATFORM_TAG: ${{ replace(matrix.image_repo, 'dpsim-', '') }}
         with:
           images: ghcr.io/${{ env.ORGANIZATION }}/dpsim
           tags: |
-            type=raw,value=${{ env.PLATFORM_TAG }}
+            type=raw,value=${{ matrix.target.platform }}
 
       - name: Pull from Local and Push to Target Registries
         shell: bash
         env:
-          IMAGE_REPO: ${{ matrix.image_repo }}
+          IMAGE_REPO: ${{ matrix.target.repo }}
           TAGS: |
             ${{ steps.meta-dockerhub.outputs.tags }}
             ${{ steps.meta-dockerhub-legacy.outputs.tags }}
