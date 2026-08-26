@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
-#
-# SPDX-License-Identifier: MPL-2.0
-
 name: Build CI
 
 on:
@@ -44,7 +40,7 @@ concurrency:
 
 env:
   ORGANIZATION: soullessblob
-  LOCAL_REGISTRY: internal-registry.arc-systems.svc.cluster.local:5000
+  LOCAL_REGISTRY: internal-registry:5000
   IMAGE_SHA: ${{ github.sha }}
   DEV_DEPENDENTS: '["dpsim", "dpsim-rpm", "dpsim-shmem"]'
 
@@ -209,7 +205,7 @@ jobs:
           context: .
           file: packaging/Docker/Dockerfile.dev
           tags: ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ env.IMAGE_SHA }}
-          push: true
+          push: ${{ needs.setup.outputs.push == 'true' }}
 
   build:
     name: Build ${{ matrix.target.repo }}
@@ -241,7 +237,7 @@ jobs:
             BASE_IMAGE=${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ env.IMAGE_SHA }}
           tags: |
             ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}:${{ env.IMAGE_SHA }}
-          push: true
+          push: ${{ needs.setup.outputs.push == 'true' }}
 
   push-dev:
     name: Promote and push dev image
