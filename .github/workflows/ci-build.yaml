@@ -118,14 +118,15 @@ jobs:
           list-files: json
           filters: |
             docker:
-              - 'packaging/Docker/Dockerfile.*'
+              - 'packaging/Docker/**/Dockerfile*'
+              - 'packaging/Docker/Dockerfile*'
             code_changed:
-              - '**'
               - '!packaging/Docker/**'
               - '!.github/**'
               - '!**.md'
               - '!.gitignore'
               - '!LICENSE*'
+              - '**'
 
       - name: Resolve images
         id: images
