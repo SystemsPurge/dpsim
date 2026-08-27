@@ -18,6 +18,16 @@ on:
         type: string
         default: ''
 
+      comparison_base:
+        description: Commit to compare against for change detection
+        required: true
+        type: string
+
+      comparison_head:
+        description: Commit to inspect for change detection
+        required: true
+        type: string
+
       rebuild_images:
         description: |
           Controls image rebuild behavior:
@@ -113,20 +123,21 @@ jobs:
 
       - name: Detect Docker image changes
         id: paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           list-files: json
+          base: ${{ inputs.comparison_base }}
+          ref: ${{ inputs.comparison_head }}
           filters: |
             docker:
-              - 'packaging/Docker/**/Dockerfile*'
-              - 'packaging/Docker/Dockerfile*'
+              - 'packaging/Docker/Dockerfile.*'
             code_changed:
+              - '**'
               - '!packaging/Docker/**'
               - '!.github/**'
               - '!**.md'
               - '!.gitignore'
               - '!LICENSE*'
-              - '**'
 
       - name: Resolve images
         id: images

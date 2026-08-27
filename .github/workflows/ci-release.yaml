@@ -5,16 +5,9 @@
 name: Push Tag
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag to test (e.g., v1.2.3)'
-        required: false
-        type: string
-        default: 'v1.0.0-test'
-  # push:
-  #   tags:
-  #     - 'v*'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   push-version:
@@ -25,6 +18,8 @@ jobs:
       packages: write
     with:
       push: true
-      rebuild_images: true
-      version: ${{ inputs.version || github.ref_name }}
+      rebuild_images: 'true'
+      version: ${{ github.ref_name }}
+      comparison_base: 'main'
+      comparison_head: ${{ github.sha }}
     secrets: inherit

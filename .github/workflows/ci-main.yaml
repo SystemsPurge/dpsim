@@ -5,10 +5,9 @@
 name: Push Main
 
 on:
-  workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 jobs:
   push-sha:
@@ -19,4 +18,6 @@ jobs:
       packages: write
     with:
       push: true
+      comparison_base: ${{ github.event.before }}
+      comparison_head: ${{ github.sha }}
     secrets: inherit
