@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - main
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -27,3 +27,4 @@ jobs:
       python_publish: testpypi
       run_documentation: false
     secrets: inherit
+  
