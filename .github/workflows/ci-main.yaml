@@ -1,23 +1,136 @@
-# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
-#
-# SPDX-License-Identifier: MPL-2.0
-
-name: Push Main
+name: CI Main
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+
+      image_tag:
+        required: true
+        type: string
+
+      image_version:
+        required: false
+        type: string
+        default: ''
+
+      python_publish:
+        required: false
+        type: string
+        default: none
+
+      run_documentation:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
-  push-sha:
-    name: Build & Push SHA
-    uses: ./.github/workflows/ci-build.yaml
+  build-images:
+    name: Build Images
+    uses: ./.github/workflows/build-images.yaml
     permissions:
       contents: read
       packages: write
     with:
-      push: true
-      comparison_base: ${{ github.event.before }}
-      comparison_head: ${{ github.sha }}
+      base_tag: ${{ inputs.image_tag }}
+      version: ${{ inputs.image_version }}
+    secrets: inherit
+
+  build-linux:
+    name: Build Linux
+    needs: [build-images]
+    uses: ./.github/workflows/build-linux.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      image_dev: sogno/dpsim-dev:${{ inputs.image_tag }}
+      image_rocky: sogno/dpsim-dev-rocky:${{ inputs.image_tag }}
+      image_minimal: sogno/dpsim-dev-minimal:${{ inputs.image_tag }}
+
+  build-windows:
+    name: Build Windows
+    uses: ./.github/workflows/build-windows.yaml
+    with:
+      ref: ${{ inputs.ref }}
+
+  checks:
+    name: Checks
+    needs: [build-images]
+    uses: ./.github/workflows/checks.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+
+  test-linux:
+    name: Test Linux
+    needs:
+      - build-images
+      - build-linux
+    if: ${{ !cancelled() && needs.build-linux.result == 'success' }}
+    uses: ./.github/workflows/test-linux.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+    secrets: inherit
+
+  villas-examples:
+    name: VILLAS ${{ matrix.example }}
+    needs:
+      - build-images
+      - build-linux
+    if: ${{ !cancelled() && needs.build-linux.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - dpsim-mqtt
+          - dpsim-mqtt-import-export
+          - dpsim-mqtt-import-export-mimo
+          - dpsim-file
+          - mqtt-cigre-mv-pf-profiles
+    uses: ./.github/workflows/run_villas_example.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      compose_file_path: examples/villas/docker-compose-tests
+      example_name: ${{ matrix.example }}
+      continue_on_error: true
+
+  nix:
+    name: Nix
+    uses: ./.github/workflows/build-nix.yaml
+    with:
+      ref: ${{ inputs.ref }}
+    secrets: inherit
+
+  build-python:
+    name: Python Packaging
+    needs:
+      - build-images
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build-python.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+      publish: ${{ inputs.python_publish }}
+    secrets: inherit
+
+  documentation:
+    name: Documentation
+    if: inputs.run_documentation
+    needs:
+      - build-images
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/documentation.yaml
+    with:
+      ref: ${{ inputs.ref }}
+      image: sogno/dpsim-dev:${{ inputs.image_tag }}
     secrets: inherit

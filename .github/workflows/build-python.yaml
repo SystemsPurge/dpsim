@@ -1,0 +1,173 @@
+# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
+# SPDX-License-Identifier: MPL-2.0
+
+name: Packaging (Python)
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Revision under test'
+        required: true
+        type: string
+      image:
+        description: 'Development image the source distribution is built in'
+        required: true
+        type: string
+      publish:
+        description: 'Publish target: none, testpypi, or pypi'
+        required: false
+        type: string
+        default: none
+
+concurrency:
+  group: python-package-${{ inputs.ref }}-${{ inputs.publish }}
+  cancel-in-progress: false
+
+jobs:
+
+  validate:
+    name: Validate inputs
+    runs-on: systemspurge-dpsim-runner
+    outputs:
+      publish: ${{ steps.validate.outputs.publish }}
+    steps:
+      - name: Validate publish input
+        id: validate
+        shell: bash
+        env:
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+
+          case "${PUBLISH}" in
+            none|testpypi|pypi) ;;
+            *)
+              echo "Invalid publish target: ${PUBLISH}" >&2
+              echo "Expected one of: none, testpypi, pypi" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "publish=${PUBLISH}" >> "${GITHUB_OUTPUT}"
+
+  build-sdist:
+    name: Source distribution
+    runs-on: systemspurge-dpsim-runner
+    container: ${{ inputs.image }}
+    needs: [validate]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+        allow-unsafe-pr-checkout: true
+        submodules: recursive
+
+    - name: Set development version for Test PyPI
+      if: needs.validate.outputs.publish != 'none'
+      shell: bash
+      run: python3 scripts/set_dev_version.py pyproject.toml ${{ github.run_number }}
+
+    - name: Build DPsim source distribution
+      shell: bash
+      run: python3 -m build --sdist --outdir dist/
+
+    - name: Archive Python source distribution
+      uses: actions/upload-artifact@v7
+      with:
+        name: dist-source
+        path: dist/
+
+  build-wheels:
+    name: Python wheel
+    runs-on: systemspurge-dpsim-runner
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        python: [cp39, cp310, cp311, cp312, cp313]
+        include:
+        - os: ubuntu-24.04
+          platform: manylinux_x86_64
+    needs: [validate]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+        allow-unsafe-pr-checkout: true
+        submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+
+    - name: Set development version for Test PyPI
+      if: needs.validate.outputs.publish != 'none'
+      shell: bash
+      run: python scripts/set_dev_version.py pyproject.toml ${{ github.run_number }}
+
+    - name: Build wheel
+      uses: pypa/cibuildwheel@v3.4.1
+      env:
+        CIBW_BUILD: "${{ matrix.python }}-${{ matrix.platform }}"
+      with:
+        output-dir: dist
+
+    - name: Upload wheel as artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: dist-wheels-${{ matrix.python }}-${{ matrix.platform }}
+        path: dist/
+
+  publish-testpypi:
+    name: Publish to Test PyPI
+    runs-on: systemspurge-dpsim-runner
+    if: needs.validate.outputs.publish == 'testpypi'
+    permissions:
+      contents: read
+      id-token: write
+    needs:
+      - validate
+      - build-sdist
+      - build-wheels
+
+    steps:
+    - name: Download wheels from build jobs
+      uses: actions/download-artifact@v8
+      with:
+        pattern: dist-*
+        merge-multiple: true
+        path: dist/
+    
+    - name: Publish distribution to Test PyPI
+      uses: pypa/gh-action-pypi-publish@v1.14.0
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: systemspurge-dpsim-runner
+    if: needs.validate.outputs.publish == 'pypi'
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    needs:
+      - validate
+      - build-sdist
+      - build-wheels
+
+    steps:
+    - name: Download wheels from build jobs
+      uses: actions/download-artifact@v8
+      with:
+        pattern: dist-*
+        merge-multiple: true
+        path: dist/
+    
+    - name: Publish distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.14.0

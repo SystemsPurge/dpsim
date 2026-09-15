@@ -1,25 +1,47 @@
-# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
-#
-# SPDX-License-Identifier: MPL-2.0
-
-name: Push Tag
+name: Validate Push Tag
 
 on:
   push:
     tags:
       - 'v*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
-  push-version:
-    name: Build & Push Version
-    uses: ./.github/workflows/ci-build.yaml
+  classify:
+    name: Classify release tag
+    runs-on: systemspurge-dpsim-runner
+    outputs:
+      python_publish: ${{ steps.classify.outputs.python_publish }}
+    steps:
+      - id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_NAME}" == *rc* ]]; then
+            echo "python_publish=testpypi" >> "$GITHUB_OUTPUT"
+          else
+            echo "python_publish=pypi" >> "$GITHUB_OUTPUT"
+          fi
+
+  ci:
+    name: Release CI
+    needs: [classify]
+    uses: ./.github/workflows/ci-main.yaml
     permissions:
       contents: read
       packages: write
+      id-token: write
     with:
-      push: true
-      rebuild_images: 'true'
-      version: ${{ github.ref_name }}
-      comparison_base: 'main'
-      comparison_head: ${{ github.sha }}
+      ref: ${{ github.sha }}
+      image_tag: ${{ github.sha }}
+      image_version: ${{ github.ref_name }}
+      python_publish: ${{ needs.classify.outputs.python_publish }}
+      run_documentation: false
     secrets: inherit

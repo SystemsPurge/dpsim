@@ -1,0 +1,29 @@
+name: Validate Push Main
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Main CI
+    uses: ./.github/workflows/ci-main.yaml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      pages: write
+    with:
+      ref: ${{ github.sha }}
+      image_tag: ${{ github.sha }}
+      python_publish: none
+      run_documentation: true
+    secrets: inherit

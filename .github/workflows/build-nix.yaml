@@ -31,12 +31,11 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
-      #4 DRY RUN
-      #- name: Setup Nix cache
-      #  uses: cachix/cachix-action@v17
-      #  with:
-      #    name: dpsim
-      #    authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Setup Nix cache
+        uses: cachix/cachix-action@v17
+        with:
+          name: dpsim
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build dpsim
         run: nix build .#dpsim
