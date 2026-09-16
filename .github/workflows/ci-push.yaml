@@ -1,23 +1,52 @@
 # SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
 # SPDX-License-Identifier: MPL-2.0
 
-name: Validate Push Main
+name: CI Push
 
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  ci:
+  release-please:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Open or update the release pull request
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          target-branch: master
+
+      - name: Publish the tag that was just created
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: gh workflow run ci-release.yaml --repo "${GITHUB_REPOSITORY}" --ref "${TAG}"
+  
+  ci-push:
     name: Main CI
+    needs: [release-please]
+    if: |
+      github.event_name != 'workflow_dispatch' && 
+      needs.release-please.outputs.release_created != 'true'
     uses: ./.github/workflows/ci-main.yaml
     permissions:
       contents: read
