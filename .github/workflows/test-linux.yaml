@@ -21,7 +21,7 @@ permissions:
 jobs:
   test-jupyter-notebooks:
     name: Run pytest over all notebooks
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     container: ${{ inputs.image }}
     steps:
     - name: Checkout
@@ -98,7 +98,7 @@ jobs:
 
   compare-notebook-results:
     name: Compare notebook results
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     needs: [test-jupyter-notebooks]
     steps:
     - name: Download new notebook results
@@ -148,7 +148,7 @@ jobs:
 
   test-binaries:
     name: Execute WSCC 9 bus example
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     container: ${{ inputs.image }}
     steps:
     - name: Restore build archive

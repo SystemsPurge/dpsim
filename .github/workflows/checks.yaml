@@ -21,7 +21,7 @@ permissions:
 jobs:
   pre-commit:
     name: Run pre-commit
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
@@ -70,7 +70,7 @@ jobs:
   clean-notebook-outputs:
     name: Notebooks have no saved outputs
     if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
@@ -120,7 +120,7 @@ jobs:
 
   check-python-deps:
     name: Validate pyproject.toml extras resolve
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -145,7 +145,7 @@ jobs:
 
   cpp-check:
     name: Scan Sourcecode with Cppcheck
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     container: ${{ inputs.image }}
     steps:
       - name: Checkout

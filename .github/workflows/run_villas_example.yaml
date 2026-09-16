@@ -27,7 +27,7 @@ on:
 jobs:
   run-villas-example:
     name: Run example
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6

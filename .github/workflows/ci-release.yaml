@@ -19,7 +19,7 @@ permissions:
 jobs:
   classify:
     name: Classify release tag
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     outputs:
       python_publish: ${{ steps.classify.outputs.python_publish }}
       rewrite_version: ${{ steps.classify.outputs.rewrite_version }}

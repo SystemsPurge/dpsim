@@ -33,7 +33,7 @@ jobs:
 
   validate:
     name: Validate inputs
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     outputs:
       publish: ${{ steps.validate.outputs.publish }}
     steps:
@@ -58,7 +58,7 @@ jobs:
 
   build-sdist:
     name: Source distribution
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     container: ${{ inputs.image }}
     needs: [validate]
     steps:
@@ -87,7 +87,7 @@ jobs:
 
   build-wheels:
     name: Python wheel
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -130,7 +130,7 @@ jobs:
 
   publish-testpypi:
     name: Publish to Test PyPI
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     if: needs.validate.outputs.publish == 'testpypi'
     permissions:
       contents: read
@@ -156,7 +156,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     if: needs.validate.outputs.publish == 'pypi'
     environment: pypi
     permissions:

@@ -18,7 +18,7 @@ on:
 jobs:
   profiling-examples:
     name: Run example with profiling
-    runs-on: systemspurge-dpsim-runner
+    runs-on: ubuntu-24.04
     container: sogno/dpsim:dev-rocky
     steps:
       - name: Restore Cache
