@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
+# SPDX-License-Identifier: MPL-2.0
+
 name: Validate Push Tag
 
 on:
@@ -19,16 +22,20 @@ jobs:
     runs-on: systemspurge-dpsim-runner
     outputs:
       python_publish: ${{ steps.classify.outputs.python_publish }}
+      rewrite_version: ${{ steps.classify.outputs.rewrite_version }}
     steps:
       - id: classify
         shell: bash
         run: |
+          run: |
           set -euo pipefail
 
           if [[ "${GITHUB_REF_NAME}" == *rc* ]]; then
             echo "python_publish=testpypi" >> "$GITHUB_OUTPUT"
+            echo "rewrite_version=false" >> "$GITHUB_OUTPUT"
           else
             echo "python_publish=pypi" >> "$GITHUB_OUTPUT"
+            echo "rewrite_version=false" >> "$GITHUB_OUTPUT"
           fi
 
   ci:
@@ -41,8 +48,8 @@ jobs:
       id-token: write
     with:
       ref: ${{ github.sha }}
-      image_tag: ${{ github.sha }}
       image_version: ${{ github.ref_name }}
       python_publish: ${{ needs.classify.outputs.python_publish }}
+      rewrite_version: ${{ needs.classify.outputs.rewrite_version }}
       run_documentation: false
     secrets: inherit

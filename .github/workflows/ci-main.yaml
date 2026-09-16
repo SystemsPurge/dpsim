@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
+# SPDX-License-Identifier: MPL-2.0
+
 name: CI Main
 
 on:
@@ -6,21 +9,18 @@ on:
       ref:
         required: true
         type: string
-
-      image_tag:
-        required: true
-        type: string
-
       image_version:
         required: false
         type: string
         default: ''
-
       python_publish:
         required: false
         type: string
         default: none
-
+      rewrite_version:
+        required: false
+        type: boolean
+        default: false
       run_documentation:
         required: false
         type: boolean
@@ -37,7 +37,7 @@ jobs:
       contents: read
       packages: write
     with:
-      base_tag: ${{ inputs.image_tag }}
+      base_tag: ${{ inputs.ref }}
       version: ${{ inputs.image_version }}
     secrets: inherit
 
@@ -47,9 +47,9 @@ jobs:
     uses: ./.github/workflows/build-linux.yaml
     with:
       ref: ${{ inputs.ref }}
-      image_dev: sogno/dpsim-dev:${{ inputs.image_tag }}
-      image_rocky: sogno/dpsim-dev-rocky:${{ inputs.image_tag }}
-      image_minimal: sogno/dpsim-dev-minimal:${{ inputs.image_tag }}
+      image_dev: sogno/dpsim-dev:${{ inputs.ref }}
+      image_rocky: sogno/dpsim-dev-rocky:${{ inputs.ref }}
+      image_minimal: sogno/dpsim-dev-minimal:${{ inputs.ref }}
 
   build-windows:
     name: Build Windows
@@ -63,7 +63,7 @@ jobs:
     uses: ./.github/workflows/checks.yaml
     with:
       ref: ${{ inputs.ref }}
-      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+      image: sogno/dpsim-dev:${{ inputs.ref }}
 
   test-linux:
     name: Test Linux
@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/test-linux.yaml
     with:
       ref: ${{ inputs.ref }}
-      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+      image: sogno/dpsim-dev:${{ inputs.ref }}
     secrets: inherit
 
   villas-examples:
@@ -116,8 +116,9 @@ jobs:
     uses: ./.github/workflows/build-python.yaml
     with:
       ref: ${{ inputs.ref }}
-      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+      image: sogno/dpsim-dev:${{ inputs.ref }}
       publish: ${{ inputs.python_publish }}
+      rewrite_version: ${{ inputs.rewrite_version }}
     secrets: inherit
 
   documentation:
@@ -132,5 +133,5 @@ jobs:
     uses: ./.github/workflows/documentation.yaml
     with:
       ref: ${{ inputs.ref }}
-      image: sogno/dpsim-dev:${{ inputs.image_tag }}
+      image: sogno/dpsim-dev:${{ inputs.ref }}
     secrets: inherit

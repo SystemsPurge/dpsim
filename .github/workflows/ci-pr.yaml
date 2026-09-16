@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Institute for Automation of Complex Power Systems, EONERC, RWTH Aachen University
+# SPDX-License-Identifier: MPL-2.0
+
 name: Validate PR
 
 on:
@@ -23,8 +26,8 @@ jobs:
       id-token: write
     with:
       ref: ${{ github.event.pull_request.head.sha }}
-      image_tag: ${{ github.event.pull_request.head.sha }}
       python_publish: testpypi
+      rewrite_version: true
       run_documentation: false
     secrets: inherit
   

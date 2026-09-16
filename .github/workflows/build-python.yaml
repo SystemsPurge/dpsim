@@ -19,6 +19,11 @@ on:
         required: false
         type: string
         default: none
+      rewrite_version:
+        description: 'Rewrite pyproject.toml to a development version before packaging'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: python-package-${{ inputs.ref }}-${{ inputs.publish }}
@@ -65,7 +70,7 @@ jobs:
         submodules: recursive
 
     - name: Set development version for Test PyPI
-      if: needs.validate.outputs.publish != 'none'
+      if: inputs.rewrite_version
       shell: bash
       run: python3 scripts/set_dev_version.py pyproject.toml ${{ github.run_number }}
 
@@ -105,7 +110,7 @@ jobs:
         python-version: '3.13'
 
     - name: Set development version for Test PyPI
-      if: needs.validate.outputs.publish != 'none'
+      if: inputs.rewrite_version
       shell: bash
       run: python scripts/set_dev_version.py pyproject.toml ${{ github.run_number }}
 
