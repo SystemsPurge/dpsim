@@ -48,7 +48,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.base_tag }}
 
       - name: Resolve configuration
         id: config

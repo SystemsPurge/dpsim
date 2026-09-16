@@ -27,7 +27,6 @@ jobs:
       - id: classify
         shell: bash
         run: |
-          run: |
           set -euo pipefail
 
           if [[ "${GITHUB_REF_NAME}" == *rc* ]]; then

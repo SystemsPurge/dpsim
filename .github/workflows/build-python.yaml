@@ -68,6 +68,7 @@ jobs:
         ref: ${{ inputs.ref }}
         allow-unsafe-pr-checkout: true
         submodules: recursive
+        
 
     - name: Set development version for Test PyPI
       if: inputs.rewrite_version

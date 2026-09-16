@@ -83,7 +83,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}/.ccache
-          key: ccache-${{ matrix.key }}-${{ github.sha }}
+          key: ccache-${{ matrix.key }}-${{ inputs.ref }}
           restore-keys: |
             ccache-${{ matrix.key }}-
 
@@ -113,5 +113,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: ${{ github.workspace }}/build
-          name: ${{ matrix.artifact }}-${{ github.sha }}
+          name: ${{ matrix.artifact }}-${{ inputs.ref }}
           retention-days: 1

@@ -38,7 +38,7 @@ jobs:
       - name: Restore build archive
         uses: actions/download-artifact@v8
         with:
-          name: build-cache-examples-cpp-${{ github.sha }}
+          name: build-cache-examples-cpp-${{ inputs.ref }}
           path: ${{ github.workspace }}/build
 
       - name: Start containers
