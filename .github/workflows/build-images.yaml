@@ -11,13 +11,7 @@ on:
         required: false
         type: string
         default: ''
-
-      registries:
-        description: JSON array of container registries to push to
-        required: false
-        type: string
-        default: '["docker.io"]'
-      
+        
       base_tag:
         description: Image tag to propagate context to and from other workflows
         required: false
@@ -29,9 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ORGANIZATION: soullessblob
-  LOCAL_REGISTRY: internal-registry:5000
-
+  ORGANIZATION: sogno-platform
+  REGISTRIES: '["docker.io"]'
 jobs:
   setup:
     name: Resolve images
@@ -54,7 +47,7 @@ jobs:
         id: config
         shell: bash
         env:
-          INPUT_REGISTRIES: ${{ inputs.registries }}
+          INPUT_REGISTRIES: ${{ env.REGISTRIES }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_BASE_TAG: ${{ inputs.base_tag }}
         run: |
@@ -109,15 +102,22 @@ jobs:
         with:
           ref: ${{ needs.setup.outputs.base_tag }}
 
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Base Image to Local Registry
+      - name: Build and Push Base Image to Staging Registry
         uses: docker/build-push-action@v6
         with:
           context: .
           file: packaging/Docker/Dockerfile.dev
-          tags: ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ needs.setup.outputs.base_tag }}
+          tags: ghcr.io/${{ env.ORGANIZATION }}/staging/dpsim-dev:${{ needs.setup.outputs.base_tag }}
           push: true
 
   build:
@@ -141,15 +141,25 @@ jobs:
         with:
           ref: ${{ needs.setup.outputs.base_tag }}
 
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build images
         uses: docker/build-push-action@v6
         with:
           context: .
           file: packaging/Docker/Dockerfile.${{ matrix.target.platform }}
           build-args: |
-            BASE_IMAGE=${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/dpsim-dev:${{ needs.setup.outputs.base_tag }}
+            BASE_IMAGE=ghcr.io/${{ env.ORGANIZATION }}/staging/dpsim-dev:${{ needs.setup.outputs.base_tag }}
           tags: |
-            ${{ env.LOCAL_REGISTRY }}/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}:${{ needs.setup.outputs.base_tag }}
+            ghcr.io/${{ env.ORGANIZATION }}/staging/${{ matrix.target.repo }}:${{ needs.setup.outputs.base_tag }}
           push: true
 
   push-dev:
@@ -165,7 +175,7 @@ jobs:
     runs-on: systemspurge-dpsim-runner
     steps:
       - name: Log in to Docker Hub
-        if: contains(needs.setup.outputs.registries, 'docker.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'docker.io')
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -173,7 +183,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_SECRET }}
 
       - name: Log in to GitHub Container Registry (GHCR)
-        if: contains(needs.setup.outputs.registries, 'ghcr.io')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -182,7 +191,7 @@ jobs:
 
       - name: Resolve metadata (docker.io)
         id: meta-dockerhub
-        if: contains(needs.setup.outputs.registries, 'docker.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'docker.io')
         uses: docker/metadata-action@v5
         with:
           images: docker.io/${{ env.ORGANIZATION }}/dpsim-dev
@@ -193,7 +202,7 @@ jobs:
 
       - name: Resolve legacy metadata (docker.io)
         id: meta-dockerhub-legacy
-        if: contains(needs.setup.outputs.registries, 'docker.io') && needs.setup.outputs.version != ''
+        if: contains(fromJSON(needs.setup.outputs.registries), 'docker.io') && needs.setup.outputs.version != ''
         uses: docker/metadata-action@v5
         with:
           images: docker.io/${{ env.ORGANIZATION }}/dpsim
@@ -202,7 +211,7 @@ jobs:
 
       - name: Resolve metadata (ghcr.io)
         id: meta-ghcr
-        if: contains(needs.setup.outputs.registries, 'ghcr.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'ghcr.io')
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.ORGANIZATION }}/dpsim-dev
@@ -213,14 +222,14 @@ jobs:
 
       - name: Resolve legacy metadata (ghcr.io)
         id: meta-ghcr-legacy
-        if: contains(needs.setup.outputs.registries, 'ghcr.io') && needs.setup.outputs.version != ''
+        if: contains(fromJSON(needs.setup.outputs.registries), 'ghcr.io') && needs.setup.outputs.version != ''
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.ORGANIZATION }}/dpsim
           tags: |
             type=raw,value=dev
 
-      - name: Pull from Local and Push to Target Registries
+      - name: Pull from Staging and Push to Target Registries
         shell: bash
         env:
           BASE_TAG: ${{ needs.setup.outputs.base_tag }}
@@ -231,12 +240,12 @@ jobs:
             ${{ steps.meta-ghcr-legacy.outputs.tags }}
         run: |
           set -euo pipefail
-          local_image="${LOCAL_REGISTRY}/${ORGANIZATION}/dpsim-dev:${BASE_TAG}"
-          docker pull "${local_image}"
+          staging_image="ghcr.io/${ORGANIZATION}/staging/dpsim-dev:${BASE_TAG}"
+          docker pull "${staging_image}"
 
           while IFS= read -r tag; do
             [[ -z "${tag}" ]] && continue
-            docker tag "${local_image}" "${tag}"
+            docker tag "${staging_image}" "${tag}"
             docker push "${tag}"
           done <<< "${TAGS}"
 
@@ -257,7 +266,7 @@ jobs:
         target: ${{ fromJSON(needs.setup.outputs.image_repos) }}
     steps:
       - name: Log in to Docker Hub
-        if: contains(needs.setup.outputs.registries, 'docker.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'docker.io')
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -265,7 +274,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_SECRET }}
 
       - name: Log in to GitHub Container Registry (GHCR)
-        if: contains(needs.setup.outputs.registries, 'ghcr.io')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -274,7 +282,7 @@ jobs:
 
       - name: Resolve metadata (docker.io)
         id: meta-dockerhub
-        if: contains(needs.setup.outputs.registries, 'docker.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'docker.io')
         uses: docker/metadata-action@v5
         with:
           images: docker.io/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}
@@ -285,7 +293,10 @@ jobs:
 
       - name: Resolve legacy transition metadata (docker.io)
         id: meta-dockerhub-legacy
-        if: contains(needs.setup.outputs.registries, 'docker.io') && needs.setup.outputs.version != '' && matrix.target.repo != 'dpsim'
+        if: |
+          contains(fromJSON(needs.setup.outputs.registries), 'docker.io') && 
+          needs.setup.outputs.version != '' && 
+          matrix.target.repo != 'dpsim'
         uses: docker/metadata-action@v5
         with:
           images: docker.io/${{ env.ORGANIZATION }}/dpsim
@@ -294,7 +305,7 @@ jobs:
 
       - name: Resolve metadata (ghcr.io)
         id: meta-ghcr
-        if: contains(needs.setup.outputs.registries, 'ghcr.io')
+        if: contains(fromJSON(needs.setup.outputs.registries), 'ghcr.io')
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.ORGANIZATION }}/${{ matrix.target.repo }}
@@ -305,14 +316,17 @@ jobs:
 
       - name: Resolve legacy transition metadata (ghcr.io)
         id: meta-ghcr-legacy
-        if: contains(needs.setup.outputs.registries, 'ghcr.io') && needs.setup.outputs.version != '' && matrix.target.repo != 'dpsim'
+        if: |
+          contains(fromJSON(needs.setup.outputs.registries), 'ghcr.io') && 
+          needs.setup.outputs.version != '' && 
+          matrix.target.repo != 'dpsim'
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.ORGANIZATION }}/dpsim
           tags: |
             type=raw,value=${{ matrix.target.platform }}
 
-      - name: Pull from Local and Push to Target Registries
+      - name: Pull from Staging and Push to Target Registries
         shell: bash
         env:
           BASE_TAG: ${{ needs.setup.outputs.base_tag }}
@@ -324,11 +338,11 @@ jobs:
             ${{ steps.meta-ghcr-legacy.outputs.tags }}
         run: |
           set -euo pipefail
-          local_image="${LOCAL_REGISTRY}/${ORGANIZATION}/${IMAGE_REPO}:${BASE_TAG}"
-          docker pull "${local_image}"
+          staging_image="ghcr.io/${ORGANIZATION}/staging/${IMAGE_REPO}:${BASE_TAG}"
+          docker pull "${staging_image}"
 
           while IFS= read -r tag; do
             [[ -z "${tag}" ]] && continue
-            docker tag "${local_image}" "${tag}"
+            docker tag "${staging_image}" "${tag}"
             docker push "${tag}"
           done <<< "${TAGS}"
