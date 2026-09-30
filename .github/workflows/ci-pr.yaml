@@ -16,6 +16,18 @@ concurrency:
 permissions:
   contents: read
 
+# TODO: Propagate this check:
+  # github.event_name == 'pull_request'
+  # && github.event.pull_request.head.repo.full_name == github.repository
+  # || github.event_name == 'pull_request_target'
+  # && github.event.pull_request.head.repo.full_name != github.repository
+
+# TODO: Split build<=>promote, consider effect on secrets:
+  # GITHUB_TOKEN ( documentation.yaml, build-images.yaml, LLM, Sonar and release-please should be safe ) split build/promote
+  # DOCKER_USER/SECRET ( build-images.yaml ) split build/promote
+  # CACHIX_AUTH_TOKEN ( build-nix.yaml ) read only on PR, else write
+  # HUGO_ACTIONS_DEPLOY_KEY ( documentation.yaml ) purely into promote
+  # CODECOV_TOKEN ( test-linux.yaml ) cant really do anything about this one
 jobs:
   ci:
     name: PR CI
